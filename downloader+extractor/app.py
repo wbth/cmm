@@ -257,7 +257,7 @@ def extract_pe_headers(file_path):
             'SizeOfUninitializedData': pe.OPTIONAL_HEADER.SizeOfUninitializedData,
             'AddressOfEntryPoint': pe.OPTIONAL_HEADER.AddressOfEntryPoint,
             'BaseOfCode': pe.OPTIONAL_HEADER.BaseOfCode,
-            'BaseOfData': getattr(pe.OPTIONAL_HEADER, 'BaseOfData', 0),
+            'BaseOfData': getattr(pe.OPTIONAL_HEADER, 'BaseOfData', 0),  # BaseOfData is not always present
             'ImageBase': pe.OPTIONAL_HEADER.ImageBase,
             'SectionAlignment': pe.OPTIONAL_HEADER.SectionAlignment,
             'FileAlignment': pe.OPTIONAL_HEADER.FileAlignment,
@@ -280,10 +280,29 @@ def extract_pe_headers(file_path):
             'NumberOfRvaAndSizes': pe.OPTIONAL_HEADER.NumberOfRvaAndSizes,
             'SectionsNb': len(pe.sections),
             'SectionsMeanEntropy': sum(section.get_entropy() for section in pe.sections) / len(pe.sections) if pe.sections else 0,
+            'SectionsMinEntropy': min(section.get_entropy() for section in pe.sections) if pe.sections else 0,
+            'SectionsMaxEntropy': max(section.get_entropy() for section in pe.sections) if pe.sections else 0,
+            'SectionsMeanRawsize': sum(section.SizeOfRawData for section in pe.sections) / len(pe.sections) if pe.sections else 0,
+            'SectionsMinRawsize': min(section.SizeOfRawData for section in pe.sections) if pe.sections else 0,
+            'SectionMaxRawsize': max(section.SizeOfRawData for section in pe.sections) if pe.sections else 0,
+            'SectionsMeanVirtualsize': sum(section.Misc_VirtualSize for section in pe.sections) / len(pe.sections) if pe.sections else 0,
+            'SectionsMinVirtualsize': min(section.Misc_VirtualSize for section in pe.sections) if pe.sections else 0,
+            'SectionMaxVirtualsize': max(section.Misc_VirtualSize for section in pe.sections) if pe.sections else 0,
+            'ImportsNbDLL': len(pe.DIRECTORY_ENTRY_IMPORT) if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT') else 0,
+            'ImportsNb': sum(len(entry.imports) for entry in pe.DIRECTORY_ENTRY_IMPORT) if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT') else 0,
+            'ImportsNbOrdinal': sum(1 for entry in pe.DIRECTORY_ENTRY_IMPORT for imp in entry.imports if imp.ordinal) if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT') else 0,
+            'ExportNb': len(pe.DIRECTORY_ENTRY_EXPORT.symbols) if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT') else 0,
             'ResourcesNb': len(resource_entries),
             'ResourcesMeanEntropy': sum(entry['Entropy'] for entry in resource_entries) / len(resource_entries) if resource_entries else 0,
+            'ResourcesMinEntropy': min(entry['Entropy'] for entry in resource_entries) if resource_entries else 0,
+            'ResourcesMaxEntropy': max(entry['Entropy'] for entry in resource_entries) if resource_entries else 0,
+            'ResourcesMeanSize': sum(entry['Size'] for entry in resource_entries) / len(resource_entries) if resource_entries else 0,
+            'ResourcesMinSize': min(entry['Size'] for entry in resource_entries) if resource_entries else 0,
+            'ResourcesMaxSize': max(entry['Size'] for entry in resource_entries) if resource_entries else 0,
             'LoadConfigurationSize': pe.DIRECTORY_ENTRY_LOAD_CONFIG.struct.Size if hasattr(pe, 'DIRECTORY_ENTRY_LOAD_CONFIG') else 0,
+            'VersionInformationSize': len(pe.FileInfo) if hasattr(pe, 'FileInfo') else 0
         }
+
         return pe_header
     except Exception as e:
         logging.error(f"Error processing {file_path}: {e}")
